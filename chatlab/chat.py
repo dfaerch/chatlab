@@ -133,7 +133,7 @@ class Chat:
         function_view: Optional[ToolArguments] = None
         finish_reason = None
 
-        tool_calls: list[ToolArguments] = []
+        tool_calls: dict[int, ToolArguments] = {}
 
         async for result in resp:  # Go through the results of the stream
             choices = result.choices
@@ -162,7 +162,7 @@ class Chat:
                             # This should not be occurring. We could continue instead.
                             raise ValueError("Tool call without function")
                         # If this is a continuation of a tool call, then we have to change the tool argument
-                        if tool_call.index < len(tool_calls):
+                        if tool_call.index in tool_calls:
                             tool_argument = tool_calls[tool_call.index]
                             if tool_call.function.arguments is not None:
                                 tool_argument.append_arguments(tool_call.function.arguments)
@@ -171,17 +171,17 @@ class Chat:
                             and tool_call.function.arguments is not None
                             and tool_call.id is not None
                         ):
-                            tool_argument = ToolArguments(
-                                id=tool_call.id, name=tool_call.function.name, arguments=tool_call.function.arguments
-                            )
+                                tool_argument = ToolArguments(
+                                    id=tool_call.id, name=tool_call.function.name, arguments=tool_call.function.arguments
+                                )
 
-                            # If the user provided a custom renderer, set it on the tool argument object for displaying
-                            func = self.function_registry.get_chatlab_metadata(tool_call.function.name)
-                            if func is not None and func.render is not None:
-                                tool_argument.custom_render = func.render
+                                # If the user provided a custom renderer, set it on the tool argument object for displaying
+                                func = self.function_registry.get_chatlab_metadata(tool_call.function.name)
+                                if func is not None and func.render is not None:
+                                    tool_argument.custom_render = func.render
 
-                            tool_argument.display()
-                            tool_calls.append(tool_argument)
+                                tool_argument.display()
+                                tool_calls[tool_call.index] = tool_argument
 
                 elif choice.delta.function_call is not None:
                     function_call = choice.delta.function_call
@@ -214,7 +214,11 @@ class Chat:
         if finish_reason is None:
             raise ValueError("No finish reason provided by OpenAI")
 
-        return (finish_reason, function_view, tool_calls)
+        # Convert tool_calls to zero-indexed list
+        tool_calls_list = [tool_calls[key] for key in sorted(tool_calls.keys()) if tool_calls[key] is not None]
+
+        return (finish_reason, function_view, tool_calls_list)
+
 
     async def __process_full_completion(
         self, resp: ChatCompletion
