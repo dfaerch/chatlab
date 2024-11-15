@@ -171,17 +171,17 @@ class Chat:
                             and tool_call.function.arguments is not None
                             and tool_call.id is not None
                         ):
-                                tool_argument = ToolArguments(
-                                    id=tool_call.id, name=tool_call.function.name, arguments=tool_call.function.arguments
-                                )
+                            tool_argument = ToolArguments(
+                                id=tool_call.id, name=tool_call.function.name, arguments=tool_call.function.arguments
+                            )
 
-                                # If the user provided a custom renderer, set it on the tool argument object for displaying
-                                func = self.function_registry.get_chatlab_metadata(tool_call.function.name)
-                                if func is not None and func.render is not None:
-                                    tool_argument.custom_render = func.render
+                            # If the user provided a custom renderer, set it on the tool argument object for displaying
+                            func = self.function_registry.get_chatlab_metadata(tool_call.function.name)
+                            if func is not None and func.render is not None:
+                                tool_argument.custom_render = func.render
 
-                                tool_argument.display()
-                                tool_calls[tool_call.index] = tool_argument
+                            tool_argument.display()
+                            tool_calls[tool_call.index] = tool_argument
 
                 elif choice.delta.function_call is not None:
                     function_call = choice.delta.function_call
