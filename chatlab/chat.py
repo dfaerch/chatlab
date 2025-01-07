@@ -96,6 +96,11 @@ class Chat:
         else:
             pass
 
+        self._chat_args = {
+            "model": model,
+            "temperature": 0
+        }
+
         self.api_key = openai_api_key
         self.base_url = base_url
 
@@ -253,6 +258,15 @@ class Chat:
 
         return choice.finish_reason, function_view, tool_calls
 
+    def set_chat_args(self, **kwargs):
+        """
+        Configure arguments for chat completion requests.
+
+        Args:
+            kwargs: Key-value pairs of arguments to use for chat completions, to be used in submit().
+        """
+        self._chat_args.update(kwargs)
+
     async def submit(self, *messages: Union[ChatCompletionMessageParam, str], stream=True, **kwargs):
         """Send messages to the chat model and display the response.
 
@@ -287,11 +301,17 @@ class Chat:
                 base_url=self.base_url,
             )
 
-            chat_create_kwargs = {
-                "model": self.model,
+            # Start with default arguments if configured
+            chat_create_kwargs = getattr(self, "_chat_args", {}).copy()
+
+            # Overwrite temperature if explicitly provided in kwargs
+            if "temperature" in kwargs:
+                chat_create_kwargs["temperature"] = kwargs["temperature"]
+
+            # Add required arguments
+            chat_create_kwargs.update({
                 "messages": full_messages,
-                "temperature": kwargs.get("temperature", 0),
-            }
+            })
 
             if self.legacy_function_calling:
                 chat_create_kwargs.update(self.function_registry.api_manifest())
